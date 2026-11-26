@@ -4,8 +4,13 @@ let cachedClient = null;
 
 async function getDb() {
     if (!cachedClient) {
-        cachedClient = new MongoClient(process.env.MONGODB_URI);
-        await cachedClient.connect();
+        const uri = process.env.MONGODB_URI;
+        if (!uri) {
+            throw new Error("MONGODB_URI environment variable is not set on the server");
+        }
+        const client = new MongoClient(uri);
+        await client.connect();
+        cachedClient = client;
     }
     return cachedClient.db("test");
 }
@@ -142,8 +147,8 @@ export default async (req) => {
             api_key_prefix: apiKey.slice(0, 10) + "...",
             query: { name, birth_date: birthDate || null, country: country || null },
             match_count: results.length,
-            top_match_id: results?.id || null,
-            top_score: results?.score || 0
+            top_match_id: results[0]?.id || null,
+            top_score: results[0]?.score || 0
         });
 
         return new Response(
